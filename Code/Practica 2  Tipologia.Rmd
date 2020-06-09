@@ -1,0 +1,601 @@
+---
+title: "Práctica 2 - Tipologia y ciclo de vida de los datos"
+author: "Nicola Bafundi"
+date: "23/05/2020"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+El objetivo de esta práctica es, a partir de un dataset elegido, identificar los datos relevantes para un proyecto analítico y usar las herramientas de integración, limpieza, validación y análisis de las mismas.
+
+
+******
+#  Descripción del dataset elegido.
+******
+
+El dataset elegido fue el obtenido en la primera práctica de la asignatura Tipologia y ciclo de vida de los datos. 
+
+El conjunto de datos contiene la información de la evolución de los casos detectados de COVID-19 por día para 8 países diferentes repartidos por todo el mundo. En concreto, se dispone de los registros de casos activos totales acumulados, de casos nuevos detectados, de decesos y de recuperaciones de COVID-19. Además, se recogen también el nivel de diversas partículas contaminantes en el aire para una de las ciudades más pobladas de los países seleccionados. 
+
+Los 8 países con su ciudad correspondiente son los siguientes:
+
+- España (Madrid)
+- Argentina (Buenos Aires)
+- Alemania (Berlín)
+- Inglaterra (Londres)
+- Italia (Roma)
+- China (Pekín)
+- Francia (París)
+- Estados Unidos (Nueva York)
+
+Las partículas seleccionadas para determinar el nivel de calidad del aire son las siguientes:
+
+- PM2,5: partículas de 2,5 µm de diámetro o menor que pueden incluir sustancias químicas orgánicas, polvo, hollín y metales
+- PM10: partículas sólidas o líquidas de polvo, cenizas, hollín, partículas metálicas, cemento o polen, dispersas en la atmósfera, y cuyo diámetro varía entre 2,5 y 10 µm
+- O3 (Ozono): gas tóxico que a concentraciones elevadas puede tener efectos en la salud humana, afectando principalmente al aparato respiratorio e irritando las mucosas, pudiendo llegar a producir afecciones pulmonares.
+- NO2 (dióxido de nitrógeno): compuesto químico gaseoso de color marrón amarillento formado por la combinación de un átomo de nitrógeno y dos de oxígeno. Es un gas tóxico e irritante.
+- SO2 (dióxido de azufre): es un gas que se origina sobre todo durante la combustión de carburantes fósiles que contienen azufre (petróleo, combustibles sólidos). Tiene efectos adversos sobre la salud.
+- CO (monóxido de carbono): es un gas tóxico, inodoro, incoloro e insípido, parcialmente soluble en agua, alcohol y benceno, resultado de la oxidación incompleta del carbono durante el proceso de combustión.
+
+
+
+A continuación procedemos a leer el conjunto de datos obtenido:
+
+```{r message= FALSE, warning=FALSE}
+data<-read.csv("./COVID19_Pollution_Dataset.csv",header=T,sep=",",na.strings = "null")
+
+summary(data)
+
+str(data)
+```
+
+Como se puede ver en la captura anterior, el dataset estará formado por los siguiente campos:
+
+- Country: Nombre del pais, en inglés, empezando en mayúscula.
+- City: Nombre de la ciudad, en inglés, empezando en mayúscula.
+- Date: fecha en formato DD/MM/YYYY.
+- Active Cases: número entero que indica los casos activos totales registrados de COVID-19 en el día en concreto.
+- Daily New cases; número entero que indica el incremento de casos positivos en el día en concreto.
+- Daily New Deaths: número entero que indica la cantidad de muertes por COVID-19 registradas el día en concreto.
+- Newly recovered: número entero que indica la cantidad de pacientes recuperados de COVID-19 ese día.
+- PM2.5: medición en ug/m3 de partículas de 2,5 um de diámetro o menor.
+- PM10: medición en ug/m3 de partículas de 10 um de diámetro o menor.
+- O3: medición en ug/m3 de moléculas de ozono.
+- NO2: medición en ug/m3 de moléculas de dióxido de nitrógeno.
+- SO2: medición en ug/m3 de moléculas de dióxido de azufre.
+- CO: medición en ug/m3 de moléculas de monóxido de carbono.
+
+Cabe destacar que los datos recogen la información desde que el COVID-19 llega al país seleccionado hasta el 10/04/2020, fecha en la que se recogieron los datos.
+
+Como se puede ver, el conjunto de datos relaciona la evolución del avance del COVID-19 en diversos países (medida en función de los nuevos casos de infectados, decesos y recuperados) con el nivel de calidad del aire de las ciudades más importantes. 
+
+La principal pregunta que se pretende responder es si el incremento de los casos en COVID-19 en un país se corresponde con un descenso en la contaminación de una de sus ciudades más importantes.
+
+
+
+*************
+# Integración y selección de los datos de interés a analizar
+*************
+
+Debido a que los datos contienen información de 8 países diferentes, para limitar el análisis se decide escoger solamente uno de los países que marcaran los pasos para el estudio del resto de países en otra ocasión. Se decide España como país más interesante a elegir para el análisis, debido a que es el país dónde vive el autor de este estudio.
+
+Primero se seleccionan los datos del dataset:
+
+```{r}
+dataSpain <- data[which(data$Country == "Spain"),]
+nrow(dataSpain)
+head(dataSpain)
+tail(dataSpain)
+```
+
+En el dataset obtenido, tenemos los datos para 56 días de España Se tienen datos hasta el día 14/04/2020, día en que se realizó la extracción. Debido a la poca cantidad de datos a analizar, se ha decidido volver a realizar la extracción hasta el día 01/06/2020. A continuación, se importan los nuevos datos obtenidos:
+
+```{r}
+data<-read.csv("./COVID19_Pollution_Dataset - Updated.csv",header=T,sep=",",na.strings = "null")
+
+#Los separamos por países:
+
+dataSpain <- data[which(data$Country == "Spain"),]
+nrow(dataSpain)
+tail(dataSpain)
+
+
+```
+
+Como se puede ver, después de la nueva extracción de los datos, aumentamos el número de observaciones. Estos son los datos originales a partir de los cúales se trabajará.
+
+Volvemos a ver la estructura de los datos:
+
+```{r}
+
+summary(dataSpain)
+str(dataSpain)
+
+```
+
+De entre los campos originales, excluiremos los siguientes:
+
+- "X", este campo es el identificador de la fila para la extracción, para el análisis no es necesario.
+- "City", debido a que solamente se tienen los datos para una ciudad de cada país (Madrid y Beijing)
+- "CO", el campo que indica la cantidad de monóxido de carbono en el aire, en el caso de España no es relevante ya que simepre es "0".
+- "Country", el campo que indica el país es relevante para distinguir las obrservaciones. Pero como solamente analizaremos las de España, se puede eliminar En el caso de ya tenerlas separado se excluirá.
+
+Otros campos que se podrían excluir pero se mantienen por su posibilidad de ser interesantes para un análisis
+
+- "Active Cases", campo que indica la cantidad de casos activos totales en el país durante un día determinado. A pesar de que es un parámetro que se puede obtener a partir de los nuevos casos, recuperaciones y muertes diarias, puede ser interesante mantenerlo para compararlo con los datos de contaminación.
+
+Asimismo, se puede ver que para algunos campos se obtienen valores perdidos ("NA's").
+
+```{r}
+dataSpain$X <- NULL
+dataSpain$City <- NULL
+dataSpain$CO <-NULL
+dataSpain$Country <- NULL
+
+```
+
+
+A continuación, se procede con la limpieza de los datos.
+
+*************
+# Limpieza de los datos
+*************
+
+Antes de realizar el análisis, se buscarán aquellos valores extremos que puedan afectar significativamente al análisis de los datos así como la estrategia de tratamiento de datos perdidos.
+
+
+Pero antes de todo, se realizará el cambio de tipo para la variable "Fecha" para convertirla en el tipo "Date"
+
+```{r}
+
+dataSpain$Date <- as.Date(dataSpain$Date, "%d-%m-%Y")
+
+```
+
+
+## Valores extremos
+
+Con los datos ya cambiados, procedemos a verificar los valores extremos de cada variable numérica para cada país. Para ello, utilizaremos la función boxplot, que nos permite identificar gráficamente cuales son los valores extremos.
+
+Consideraremos outliers, todos aquellos valores que se encuentre fuera del rango determinado por el boxplot, es decir aquellos cuyo valor este por encima o por debajo de la distancia entre los percentiles 25% y 75% de la distribución (rango intercuantílico) por 1.5.
+
+Procedemos a mostrar las funciones boxplot para las variables:
+```{r}
+
+boxplot(dataSpain$Active.Cases)
+title("Casos Activos España")
+boxplot(dataSpain$Daily.New.Cases)
+title("Nuevos Casos Diarios España")
+boxplot(dataSpain$Daily.New.Deaths)
+title("Fallecidos Diarios España")
+boxplot(dataSpain$Newly.Recovered)
+title("Recuperados diarios España")
+boxplot(dataSpain$PM2.5)
+title("PM2.5")
+boxplot(dataSpain$PM10)
+title("PM10")
+boxplot(dataSpain$O3)
+title("O3")
+boxplot(dataSpain$NO2)
+title("NO2")
+boxplot(dataSpain$SO2)
+title("SO2")
+
+
+```
+
+Detectamos Outliers para las siguientes variables:
+
+- Fallecidos Diarios
+- Recuperados diarios
+- PM2.5
+- PM10
+- O3
+- NO2
+
+Procedemos a ver indivualmente para los casos de Fallecidos y recuperacions diarias para ver si los consideramos en el análisis, eliminamos la observación o bien la consideramos NA.
+
+Para los outliers detectados en las variables de contaminación, se decide mantenerlos ya que pueden ser significativos para los análisis. Asimismo los valores extremos tampoco parecen ser "elevadamente extremos" o "raros" como para indicar que son un error.
+
+
+Procedemos con los Fallecidos Diarios:
+
+```{r}
+bx <- boxplot(dataSpain$Daily.New.Deaths ,plot = FALSE)
+bx$out
+
+dataSpain[which(dataSpain$Daily.New.Deaths == bx$out ),]
+
+#Ponemos como NA
+
+dataSpain[which(dataSpain$Daily.New.Deaths == bx$out ),"Daily.New.Deaths"] <- NA
+
+#Se verifica si hay algún otro valor inferior a cero para los nuevos casos diarios
+
+nrow(dataSpain[which(dataSpain$Daily.New.Cases < 0 ),])
+
+# Se considera también como NA.
+dataSpain[which(dataSpain$Daily.New.Cases < 0 ),"Daily.New.Cases"] <- NA
+
+```
+
+Como se puede ver en este caso el número de fallecidos diarios es negativo. Esto se debe a un error en el recuento de fallecidos del Ministerio de Sanidad debido a las validaciones posteriores de los datos enviados por las comunidades autónomas. ver el siguiente link con la noticia:
+
+https://www.lasprovincias.es/sociedad/salud/fernando-simon-explica-2000-muertos-menos-coronavirus-20200525192539-nt.html?ns_campaign=jaqueton&ref=https:%2F%2Ft.co%2FZGELgdnWOT%3Famp%3D1
+
+Se considera como dato perdido el valor de ese dia pero, cabe indicar que el valor de nuevos casos diarios es negativo, ocasionado también por la misma casuística que el de fallecimientos.
+
+
+Continuamos con las recuperaciones diarias:
+
+```{r}
+bx <- boxplot(dataSpain$Newly.Recovered ,plot = FALSE)
+bx$out
+
+dataSpain[which(dataSpain$Newly.Recovered %in% bx$out ),]
+
+summary(dataSpain$Newly.Recovered)
+#Ponemos como NA
+
+dataSpain[which(dataSpain$Newly.Recovered == 18368 ),"Newly.Recovered"] <- NA
+
+```
+
+
+En este caso, podemos ver que los valores extremos son para esos días en que se registraron valores más altos de lo normal para las recuperaciones.  El caso del día 24/04/2020 puede ser debido a la acumulación de recuperaciones durante los días previos que no fueron registradas previamente. Por esta razón y porque es bastante distante respecto al resto de observaciones, se considerará como NA para evitar su influencia dentro de la muestra. A pesar de ello, sí se decide mantener el otro outlier.
+
+## Datos perdidos
+
+
+A continuación, procedemos a ver los datos perdidos (NA) en el subconjunto de España:
+
+```{r}
+summary(dataSpain)
+```
+
+Como se puede observar en el resumen, hay tres variables con valores perdidos. Realizaremos la imputación de los valores perdidos con la función KNN (K - Nearest Neighbours) de la librería VIM.
+
+Para ello, solamente utilizaremos las variables casos activos, casos diarios, fallecidos diarios y recuperados diarios.
+
+```{r message= FALSE, warning=FALSE}
+library("VIM")
+
+#Seleccionamos el dataset a partir de los datos indicados
+quant.dataSpain <- dataSpain[,c(2:5)]
+
+#Con la librería VIM cargada, ejecutamos la imputación de valores para k = 5 utilizando la función kNN que utiliza la distancia de Gower.
+
+quant.input <- kNN(quant.dataSpain, k=5)
+
+#Vemos cuales son los valores imputados y los comparamos con los originales
+
+idxInput <- which(quant.input$Daily.New.Cases_imp == TRUE | quant.input$Daily.New.Deaths_imp == TRUE | quant.input$Newly.Recovered_imp)
+
+quant.input[idxInput,1:4]
+
+quant.dataSpain[idxInput,]
+
+#Asignamos los valores imputados al dataSpain
+
+quant.dataSpain[idxInput,] <- quant.input[idxInput,1:4]
+
+dataSpain[,c(2:5)] <- quant.dataSpain
+
+
+```
+
+Commparando los valores imputados, se observa que el valor de casos diarios para la fila 101 es 0, que en contraste con las observaciones anteriores y posteriores, 0 no es el valor adecuado para la fila, por eso se decide recalcular el valor de ese campo utilizando la fórmula que los casos activos = casos activos del dia anterior + casos nuevos diarios - fallecimientos diarios - recuperaciones diarias:
+
+
+```{r}
+dataSpain[101,"Daily.New.Cases"] <- dataSpain[101,"Active.Cases"] - dataSpain[100,"Active.Cases"] + dataSpain[101,"Daily.New.Deaths"] + dataSpain[101,"Newly.Recovered"]
+
+dataSpain[99:105,]
+
+```
+Ahora el valor imputado tiene más sentido.
+
+Una vez con los valores imputados, procedemos a hacer un resumen de los datos:
+```{r}
+summary(dataSpain)
+```
+
+Ya no tenemos valores perdidos en los datos y los podemos considerar como limpios. A continuación, procedemos a exportarlos:
+
+```{r}
+
+write.csv(dataSpain,"./COVID19_Pollution_Dataset_Clean.csv")
+```
+
+
+
+*************
+# Análisis de los datos y representación gráfica de los resultados
+*************
+
+Después de tratar los valores extremos y perdidos en los datos, procedemos a realizar la fase de análisis de los datos. Primero de todo, seleccionaremos los grupos de datos a analizar. De momento, solamente se excluirá la variable fecha que es la única variable "categórica" de la que se dispone. En función de los resultados de los test que se aplicaran a los datos se formarán diversos grupos de datos.
+
+
+```{r}
+ds <- dataSpain
+ds$Date <- NULL
+
+```
+
+
+## Normalidad
+
+A continuación, comprobaremos si los datos obtenidos siguen una distribución normal. Para ello, aplicaremos el test de shapiro-wilk, en el que se asume como hipótesis nula que la población está distribuida normalmente, si el p-valor es menor al nivel de significancia (0.05), entonces la hipótesis nula es rechazada y se concluye que los datos no cuentan con una distribución normal.
+
+```{r}
+shapiro.test(ds$Active.Cases)
+shapiro.test(ds$Daily.New.Cases)
+shapiro.test(ds$Daily.New.Deaths)
+shapiro.test(ds$Newly.Recovered)
+
+```
+
+Para los datos relacionados con el COVID-19 observamos que no siguen una distribución normal, ya que todos los p-valores son inferiores a 0.05
+
+```{r}
+shapiro.test(ds$PM2.5)
+shapiro.test(ds$PM10)
+shapiro.test(ds$O3)
+shapiro.test(ds$NO2)
+shapiro.test(ds$SO2)
+```
+
+De los valores relacionados con la contaminación, solamente podemos decir que puede seguir una distribución normal es la variable O3, el ozono.
+
+Conocer si una variable sigue una distribución normal o no, nos permitirá aplicar un test o otro durante el análisis.
+
+
+## Homocedasticidad
+
+
+A continuación, comprobaremos si las variables son homogeneas, es decir, tienen la misma varianza. Para ello, como la mayoría de los datos no siguen una distribución no normal, se utilizará el test de Fligner-Killeen.
+Para ello, comprobaremos la homocedasticidad de la variable Casos Activos con las variables con los datos de contaminación.
+
+```{r}
+fligner.test(Active.Cases ~ PM2.5, data = ds)
+fligner.test(Active.Cases ~ PM10, data = ds)
+fligner.test(Active.Cases ~ O3, data = ds)
+fligner.test(Active.Cases ~ NO2, data = ds)
+fligner.test(Active.Cases ~ SO2, data = ds)
+
+```
+
+En este caso, la hipótesis nula es que se asume la igualdad de varianzas entre las variables, por lo que p-values inferiores al nivel de significancia (0.05) indican heterocedasticidad. En los resultados de las pruebas de homocedasticidad de las variables con datos de contaminación con los casos activos, obtenemos un p-value mayor al nivel de significancia por tanto podemos asumir la igualdad de varianzas entre las variables.
+
+
+## Correlaciones
+
+
+A continuación, continuamos con el análisis de la correlatividad entre variables.
+```{r}
+cor.res <- cor(ds, method = "spearman")
+cor.res
+
+```
+
+Utilizando la función cor(), obtenemos el coeficiente de correlación entre dos variables. El coeficiente de correlación puede tomar valores entre -1 y 1 donde los extremos indican una correlación perfecta y el 0 indica la ausencia de correlación. Si el signo es negativo significa que ha medida que crece una variable la otra disminuye, en cambio si el signo es positivo ambas variables tienden a incrementar simultáneamente.
+
+Debido a que la mayoría de distribuciones no siguen una distribución normal, se ha calculado el coeficiente de correlación utilizando el método de spearman. A continuación, se detallan las conclusiones del análisis:
+
+- Podemos ver que los datos relacionados con los contagiados tienen una dependencia positiva entre ellos, si aumenta uno también tiende a aumentar el otro. 
+- Entre las variables de contaminación no parece haber mucha correlatividad entre ellos.
+- Existe un índice de correlatividad negativo significativo entre el indicador de contaminación por NO2 y las variables de los contagiados.
+- Existe un índice de correlatividad negativo entre el indicado de contaminación por partículas PM10 y las variables de los contagiados, aunque en menor medida que para el NO2.
+
+A continuación procedemos a ver la matriz de correlación de forma visual:
+
+```{r}
+corrplot::corrplot(cor.res,method = "circle")
+
+```
+
+Utilizando el gráfico de correlación, podemos observar más fácilmente el nivel de correlatividad entre variables. 
+
+A continuación procedemos a ver el nivel de significancia de la correlación de los casos activos con el NO2 y de los casos nuevos diarios con PM10:
+Para ello, lo haremos mostrando gráficamente el resultado  utilizando la función ggscatter de la librería ggpubr:
+
+```{r message= FALSE, warning=FALSE}
+
+library("ggpubr")
+ggscatter(ds,x = "Active.Cases", y = "NO2", color = "blue",
+          add = "reg.line", conf.int = TRUE, cor.coef = TRUE, cor.method = "spearman",
+          xlab = "casos Activos", ylab = "NO2")
+
+library("ggpubr")
+ggscatter(ds,x = "Daily.New.Cases", y = "PM10", color = "brown",
+          add = "reg.line", conf.int = TRUE, cor.coef = TRUE, cor.method = "spearman",
+          xlab = "Casos Nuevos Diarios", ylab = "PM10")
+
+```
+
+Como podemos observar, el nivel de correlación entre las variables es significativo (p-value < 0.05).
+También vemos gráficamente como cuando había 0 casos activos, se produjeron los valores más altos de NO2 en el dataset y a medida que los casos activos fueron aumentando el nivel de NO2 no subió de los 20 ug/m3. Esto es debido a que cuando se tenía un número importante de casos activos de COVID-19 se proclamó el estado de alarma en el estado español, limitando la circulación de personas y por ende se redujo la emisión de gases como el NO2.
+
+Asimismo, también podemos ver que con el incremento de los casos nuevos de contagio diarios la reducción de partículas de 10 um de díametro o menor por metro cúbico tiende a reducirse.
+
+
+## Modelo no supervisado: Kmeans
+
+
+A continuación, intentaremos aplicar un modelo no supervisado, el k-means.
+
+El algoritom K-means permite agrupar en k clusters las diferentes observaciones del conjunto de datos en función de la media.
+
+Para medir la distancia de la media entre las diferentes observaciones utilizarmos el método de euclides y para determinar el número de k adecuado utilizaremos la regla de codo. Para ello, probaremos valores de k del 2 al 10 y verificaremos cúal sería el que mejor resultado daría en función de aquel que ofrece la menor suma de los cuadrados de las distancias de los puntos de cada grupo con respecto a su centro (withinss).
+
+Para el cálculo, se utilizará la función Kmeans de la librería "amap".
+
+
+```{r message= FALSE, warning=FALSE}
+library(amap)
+set.seed(8)
+
+resultados <- rep(0, 10)
+for (i in c(2:10))
+{
+  fit         <- Kmeans(ds, centers = i, method = "euclidean")
+  resultados[i] <- sum(fit$withinss)
+}
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Número de clusters",ylab="tot.tot.withinss")
+```
+
+Observamos que, aproximadamente, utilizando la regla del codo, la curva se empieza estabilizar a partir del número 4. Se decide escoger este número cómo óptimo de k.
+
+
+Procedemos a utilizar k = 4 para calcular los clústeres con el k-means.
+
+```{r}
+set.seed(8)
+
+K6Eu <- Kmeans(ds,centers = 4, method = "euclidean")
+
+plot(dataSpain$Date, dataSpain$Active.Cases,col = c("red", "blue", "green", "orange")[K6Eu$cluster])
+plot(dataSpain$Date, dataSpain$NO2,col = c("red", "blue", "green", "orange")[K6Eu$cluster])
+
+```
+
+Después de calcular los grupos, los mostramos de forma gráfica identificándolos por colores.
+
+Vemos que el primer grupo (rojo) viene determinado por los días en que la pandemia estaba en sus inicios, con pocos contagios pero en aumento y con un índice alto de contaminación por NO2.
+El segundo grupo esta formado por aquellos días en que los contagios incrementaban en gran medida de un día para otro y por los últimos días recogidos en el dataset, en el que la curva ya había pasado el pico y comenzaba la "normalidad" en las ciudades españolas, como Madrid. Asimismo el indicador de NO2 comenzaba a subir de nuevo
+El tercer grupo esta formado por los días en que la curva estaba llegando a su pico y cuando justo la había pasado. Los niveles de NO2 en ese punto ya eran bajos.
+Finalmente, el cuarto grupo está formado por los días en que los casos activos en España estaban su punto más álgido y el nivel de NO2 era bastante bajo en Madrid.
+
+Mediante esta agrupación podemos ver también como los nivels altos de NO2 se agrupan con los pocos casos activos de COVID-19 y viceversa.
+
+Asimismo, parece que el principal criterio del algoritmo para separar los grupos fue la dimensión de casos activos.
+
+
+## Modelo de regresión linear
+
+Seguimos con el análisis de los datos mediante la creación de un modelo de regresión linear que nos permita determinar el nivel de contaminación por NO2 durante los días de la pandemia en función del resto de datos obtenidos que más estan correlacionados en nivel de absoluto con esta variable.
+
+Para ello, utilizaremos la función lm() de la librería stats de R. 
+
+Obtenemos el modelo de regresión linear del nivel de contaminación de NO2 a partir de los casos activos de COVID-19.
+
+```{r}
+linear.model1 <- lm(NO2 ~ Active.Cases, data = ds)
+summary(linear.model1)
+```
+
+Con este modelo, se obtiene un coeficiente de R-squared de 0.52 por lo que podemos decir la calidad del modelo es media. Adicionalmente, observamos que el coeficiente de la variable de casos activos es negativa, lo que indica que a medida que aumente este valor, el valor de NO2 disminuye.
+Por último cabe indicar que el p-value es menor al nivel de significancia 0.05.
+
+Procedimos a añadir la variable O3 al modelo:
+
+
+```{r}
+linear.model2 <- lm(NO2 ~ Active.Cases + O3, data = ds)
+summary(linear.model2)
+```
+Después de añadir la variable O3, observamos que el coeficiente R-squared ajustado aumenta ligeramente a 0.54 por lo que aumenta la calidad del modelo. También para la variable O3, en caso de que aumente su valor hace disminuir el valor del indicador de NO2.
+
+
+Procedemos a añadir la tercera variable que está más correlacionada con la variable NO2, el indicador de S02:
+
+```{r}
+linear.model3 <- lm(NO2 ~ Active.Cases + O3 + SO2, data = ds)
+summary(linear.model3)
+
+```
+
+Con este modelo, la calidad del modelo ha aumentado notablemente respecto a los modelos anteriores con un coeficiente R-squared ajustado de 0.62.
+Para el caso del indicador de SO2, si este aumenta en una unidad el indicado de NO2 aumenta en 3,39. Asimismo, todas las variables son significativas en el modelo con un p-value inferior a 0.05.
+
+Procedemos a realizar una diagnosis del modelo para verificar su índice de acierto gráficamente:
+
+
+### Diagnosis del modelo
+
+A continuación procederemos para hacer un diagnosis mediante gráficos del modelo que relaciona el valor de NO2 con los casos activos de COVID-19, el O3 y el SO2.
+
+Primero haremos uno con los valores uno con los valores ajustados frente a los residuos (que nos permitirá ver si la varianza es constante).
+
+```{r}
+#Predecimos los valores 
+ValoresAjustados <- predict(linear.model3,ds)
+
+#Eliminamos las etiquetas
+names(ValoresAjustados)<-NULL
+
+#Calculamos los residuos
+Residuos <-  ds$NO2 - ValoresAjustados
+
+
+
+plot(ValoresAjustados,Residuos,title("Residuos frente Valores ajustados"))
+abline(h = 0)
+
+```
+
+Por lo que vemos en el gráfico, la mayoría de los valores se ajustan con un error entre +5 y -5 del indicado de NO2.
+
+A continuación, realizaremos un gráfico cuantil-cuantil para comparar los residuos del modelo con los valores de una variable que se distribuye normalmente(QQ plot).
+
+```{r}
+qqnorm(Residuos)
+qqline(Residuos, col = "green", lwd = 2)
+
+```
+
+En este gráfico vemos la distribución de los residuos. Para tener una distribución normal los valores deberían de estar en sintonía con la recta de color verde marcada en el gráfico. Podemos ver como la gran mayoría de los valores están en línea a excepción de unos pocos valores con sobrepasan los +10 y -10 unidades de error.  A excepción de estos valores, podría decirse que los residuos siguen una distribución normal en la que la varianza es constante.
+
+
+*************
+# Resolución del problema - Conclusiones
+*************
+
+Utilizando el dataset con los datos de COVID-19 de 8 países y con los datos de contaminación atmosférica de sus correspondientes capitales, se pretendía verificar si la contaminación en las ciudades más pobladas disminuyó con el inicio de la pandemia.
+Se decidió seleccionar los datos de uno de los países, España para reducir el alcance y establecer los pasos a seguir para el posterior análisis del resto de países.
+
+Primero de todo, se actualizaron los datos del país elegido, ampliando los datos a analizar. Asimismo, se descartaron las variables que no serían significantes para el análisis.
+
+Seguidamente, se realizó un análisis variable por variable, modificando el tipo de datos que fuera necesario e identificando los valores extremos y los ouliers.
+Para cada valor extremo identificado utilizando la función boxplot, se analizó y buscó las posibles causas y tomó la decisión de eliminar (considerar como dato perdido) o mantener.
+
+Para los valores perdidos identificados, se utilizó el algoritmo K-Nearest-Neighbors para realizar la imputación de los valores y finalizar la limpieza de los datos.
+
+Antes de iniciar el análisis, se realizaron las comprobaciones previas de normalidad y homocedasticidad para los datos. Utilizando el test de shapiro-wilk se obtuvo que ninguna de las variables seguía la distribución normal y utilizando el test de Fligner-Killeen se obtuvieron p-valores menores al nivel de signifancia 0.05, por lo que se asumió igualdad de varianza entre las variables.
+
+Después de aplicar los test, se realizó un análisis de la correlatividad entre las variables, del que se pudo observar gráficamente que a medida que los casos activos de COVID-19 aumentaban, el nivel de contaminación de NO2 y de PM10 se reducía. 
+
+Seguidamente, se aplicó el algoritmo k-means, un modelo no supervisado, entre los que se agruparon los valores bajos de casos activos con los valores altos de contaminación por NO2, y los días con más casos activos con los días de menor contaminación por N02.
+
+Por último, se intentó crear un modelo de regresión linear para predecir el nivel de contaminación de NO2 en función de los parámetros que estaban más correlacionados con la variable, entre los que se encontraban los casos activos.
+
+
+Por lo tanto, podemos concluir que el incremento de casos activos de COVID-19 contribuyó en la reducción de diversas sustancias contaminantes como el N02 y las PM10. Esto es debido a las medidas de restricción de mobilidad ciudadana instaurada por el Gobierno Español para frenar el avance del virus.
+
+
+
+
+
+
+
+
+
+
+
